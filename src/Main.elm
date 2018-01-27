@@ -18,7 +18,9 @@ main =
 
 
 type alias Talk =
-    { posterName : String
+    { id : Int
+    , posterId : Int
+    , posterName : String
     , message : String
     , createdAt : String
     , imageUrl : String
@@ -34,11 +36,12 @@ type alias Model =
 type Msg
     = InputForm String
     | PostTalk
+    | DeleteTalk Int
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { talkList = [ { posterName = "とみざわ", message = "ピザ食いてえ", createdAt = "2018/01/27 13:00", imageUrl = "http://www.hochi.co.jp/photo/20170718/20170718-OHT1I50084-T.jpg" }, { posterName = "伊達ちゃん", message = "ピザ食いてえ", createdAt = "2018/01/27 13:00", imageUrl = "http://www.hochi.co.jp/photo/20170718/20170718-OHT1I50084-T.jpg" } ]
+    ( { talkList = [ { id = 1, posterId = 1, posterName = "とみざわ", message = "ピザ食いてえ", createdAt = "2018/01/27 13:00", imageUrl = "http://www.hochi.co.jp/photo/20170718/20170718-OHT1I50084-T.jpg" }, { id = 2, posterId = 2, posterName = "伊達ちゃん", message = "ピザ食いてえ", createdAt = "2018/01/27 13:00", imageUrl = "https://imgcp.aacdn.jp/img-c/680/auto/tipsplus/series/246/20160608_1465380998273.jpg" } ]
       , content = ""
       }
     , Cmd.none
@@ -54,14 +57,23 @@ update msg ({ talkList, content } as model) =
         PostTalk ->
             let
                 newList =
-                    { posterName = "伊達ちゃん"
+                    { id = List.length model.talkList + 1
+                    , posterId = 1
+                    , posterName = "とみざわ"
                     , message = content
-                    , imageUrl = "https://imgcp.aacdn.jp/img-c/680/auto/tipsplus/series/246/20160608_1465380998273.jpg"
+                    , imageUrl = "http://www.hochi.co.jp/photo/20170718/20170718-OHT1I50084-T.jpg"
                     , createdAt = "2018/01/27 13:00" -- 仮
                     }
                         :: talkList
             in
             ( { model | talkList = newList, content = "" }, Cmd.none )
+
+        DeleteTalk talkId ->
+            let
+                newList =
+                    List.filter (\talk -> talk.id /= talkId) model.talkList
+            in
+            ( { model | talkList = newList }, Cmd.none )
 
 
 viewTalk : Talk -> Html Msg
@@ -72,8 +84,7 @@ viewTalk talk =
         , div [ Styles.talkRight ]
             [ div [ Styles.posterName ] [ text talk.posterName ]
             , div [ Styles.message ] [ text talk.message ]
-            , div [ Styles.talkFooter ]
-                [ text talk.createdAt ]
+            , div [] [ viewTalkFooter { talkId = talk.id, isMine = isMy talk, createdAt = talk.createdAt } ]
             ]
         ]
 
@@ -91,26 +102,38 @@ view model =
                 ]
             ]
         , div [] <| List.map viewTalk model.talkList
-        , div [ Styles.talk ]
-            [ div [ Styles.talkLeft ]
-                [ img [ Styles.posterImg, src "http://www.hochi.co.jp/photo/20170718/20170718-OHT1I50084-T.jpg" ] [] ]
-            , div [ Styles.talkRight ]
-                [ div [ Styles.posterName ] [ text "とみざわ" ]
-                , div [ Styles.message ] [ text "ちょっと何言ってるかわかんないっす" ]
-                , div [ Styles.talkFooter ]
-                    [ text "2018/01/27 13:30"
-                    , div [ Styles.buttons ]
-                        [ button [ Styles.editButton ] [ text "編集" ]
-                        , button [ Styles.deleteButton ] [ text "削除" ]
-                        ]
-                    ]
-                ]
-            ]
         ]
 
 
 
 -- cf. 編集中はメッセージがtextarea表示になり、変更できるようになります
+
+
+type alias TalkMeta =
+    { talkId : Int, isMine : Bool, createdAt : String }
+
+
+viewTalkFooter : TalkMeta -> Html Msg
+viewTalkFooter meta =
+    if meta.isMine then
+        div [ Styles.talkFooter ]
+            [ text "2018/01/27 13:30"
+            , div [ Styles.buttons ]
+                [ button [ Styles.editButton ] [ text "編集" ]
+                , button [ Styles.deleteButton, onClick (DeleteTalk meta.talkId) ] [ text "削除" ]
+                ]
+            ]
+    else
+        text ""
+
+
+
+-- 自分はID: 1ということで
+
+
+isMy : Talk -> Bool
+isMy talk =
+    talk.posterId == 1
 
 
 viewEditingTalk : Html msg
